@@ -1,0 +1,7 @@
+# Network Sentinel Dependencies
+
+# Core packet manipulation and sniffing
+scapy>=2.5.0
+
+# Only needed if you plan to compile into executables (optional)
+# pyinstaller>=6.0.0

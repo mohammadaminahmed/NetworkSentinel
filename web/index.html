@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Sentinel | Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --surface-color: rgba(22, 27, 34, 0.6);
+            --border-color: rgba(48, 54, 61, 0.8);
+            --text-main: #c9d1d9;
+            --text-muted: #8b949e;
+            --accent-green: #2ea043;
+            --accent-green-hover: #3fb950;
+            --accent-red: #f85149;
+            --accent-red-hover: #ff6a69;
+            --accent-yellow: #d29922;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: radial-gradient(circle at top right, rgba(46, 160, 67, 0.1), transparent 40%),
+                              radial-gradient(circle at bottom left, rgba(248, 81, 73, 0.05), transparent 40%);
+        }
+
+        header {
+            padding: 20px 40px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+            background: var(--surface-color);
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h1 span {
+            color: var(--accent-green);
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        input[type="text"], input[type="password"] {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            outline: none;
+        }
+        input[type="text"]:focus, input[type="password"]:focus {
+            border-color: var(--accent-green);
+        }
+
+        button {
+            padding: 8px 20px;
+            border-radius: 6px;
+            border: none;
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-start {
+            background: var(--accent-green);
+            color: #fff;
+        }
+        .btn-start:hover { background: var(--accent-green-hover); box-shadow: 0 0 10px rgba(46, 160, 67, 0.4); }
+
+        .btn-stop {
+            background: var(--accent-red);
+            color: #fff;
+            display: none;
+        }
+        .btn-stop:hover { background: var(--accent-red-hover); box-shadow: 0 0 10px rgba(248, 81, 73, 0.4); }
+
+        .btn-settings {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+        }
+        .btn-settings:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+        .status {
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-yellow);
+        }
+
+        main {
+            padding: 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            flex: 1;
+        }
+
+        @media (max-width: 1000px) {
+            main { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel h2 {
+            font-size: 18px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table-container {
+            overflow-y: auto;
+            flex: 1;
+            max-height: 500px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(48, 54, 61, 0.4);
+        }
+
+        th {
+            color: var(--text-muted);
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            background: rgba(22, 27, 34, 0.9);
+            backdrop-filter: blur(5px);
+        }
+
+        td {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        tbody tr:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tag {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .tag-CRITICAL { background: rgba(248, 81, 73, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
+        .tag-HIGH { color: var(--accent-red); }
+        .tag-MEDIUM { color: var(--accent-yellow); }
+        .tag-LOW { color: var(--accent-green); }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            width: 400px;
+            text-align: center;
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+            animation: pop 0.3s ease-out;
+        }
+        .modal.danger {
+            border-color: var(--accent-red);
+            box-shadow: 0 0 40px rgba(248, 81, 73, 0.2);
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.9); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .modal h3 {
+            color: var(--text-main);
+            margin-bottom: 15px;
+            font-size: 22px;
+        }
+        .modal.danger h3 { color: var(--accent-red); }
+
+        .modal p {
+            margin-bottom: 25px;
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        /* Settings grid */
+        .settings-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        .settings-group {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        .settings-group h4 { color: var(--accent-green); margin-bottom: 10px; font-size: 14px; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; }
+        .form-control { display: flex; flex-direction: column; gap: 5px; margin-bottom: 10px; }
+        .form-control label { font-size: 12px; color: var(--text-muted); }
+        .form-control input[type="text"], .form-control input[type="password"] { width: 100%; }
+        .form-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px;}
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🛡️ Network <span>Sentinel</span></h1>
+        <div class="controls">
+            <span class="status" id="statusLabel">Status: IDLE</span>
+            <input type="text" id="interfaceInput" placeholder="Interface (e.g. eth0)" value="eth0">
+            <button class="btn-settings" onclick="openSettings()">⚙️ Settings</button>
+            <button class="btn-start" id="startBtn" onclick="startCapture()">START MONITORING</button>
+            <button class="btn-stop" id="stopBtn" onclick="stopCapture()">STOP MONITORING</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="panel">
+            <h2>🚨 Real-time Alerts</h2>
+            <div class="table-container">
+                <table id="alertsTable">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Severity</th>
+                            <th>Title</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2>💻 Discovered Devices</h2>
+            <div class="table-container">
+                <table id="devicesTable">
+                    <thead>
+                        <tr>
+                            <th>MAC Address</th>
+                            <th>IP Address</th>
+                            <th>Vendor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- IPS Modal -->
+    <div class="modal-overlay" id="ipsModal">
+        <div class="modal danger">
+            <h3>⚠️ IPS Action Required</h3>
+            <p>A critical attack has been detected!<br>Do you want to block the attacker's IP: <br><strong id="attackerIp" style="font-family: monospace; font-size: 18px; color: #fff;">192.168.1.5</strong>?</p>
+            <div id="ipsOsint"></div>
+            <div class="modal-actions">
+                <button class="btn-start" onclick="handleIps('ignore')" style="background: var(--surface-color); border: 1px solid var(--border-color);">Ignore</button>
+                <button class="btn-stop" onclick="handleIps('block')" style="display: block;">Block IP</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OSINT Modal -->
+    <div class="modal-overlay" id="osintModal">
+        <div class="modal">
+            <h3>🔍 Threat Intelligence</h3>
+            <p>Gathering data for: <br><strong id="osintIp" style="font-family: monospace; font-size: 18px; color: var(--accent-yellow);"></strong></p>
+            <div id="osintContent"></div>
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button class="btn-start" onclick="document.getElementById('osintModal').style.display = 'none'" style="background: var(--surface-color); border: 1px solid var(--border-color);">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal" style="width: 700px; max-width: 90vw;">
+            <h3>⚙️ Notification Settings</h3>
+            <div class="settings-grid">
+                <div class="settings-group">
+                    <h4>📱 Telegram Bot</h4>
+                    <div class="form-row">
+                        <input type="checkbox" id="cb_telegram"> <label for="cb_telegram">Enable Telegram</label>
+                    </div>
+                    <div class="form-control">
+                        <label>Bot Token</label>
+                        <input type="text" id="in_tg_token">
+                    </div>
+                    <div class="form-control">
+                        <label>Chat ID</label>
+                        <input type="text" id="in_tg_chat">
+                    </div>
+                </div>
+                <div class="settings-group">
+                    <h4>✉️ Email Notification</h4>
+                    <div class="form-row">
+                        <input type="checkbox" id="cb_email"> <label for="cb_email">Enable Email</label>
+                    </div>
+                    <div class="form-control">
+                        <label>Sender Email</label>
+                        <input type="text" id="in_em_sender">
+                    </div>
+                    <div class="form-control">
+                        <label>App Password</label>
+                        <input type="password" id="in_em_pass">
+                    </div>
+                    <div class="form-control">
+                        <label>Receiver Email</label>
+                        <input type="text" id="in_em_recv">
+                    </div>
+                </div>
+                <div class="settings-group" style="grid-column: span 2;">
+                    <h4>🔊 Sound Alarm</h4>
+                    <div class="form-row">
+                        <input type="checkbox" id="cb_sound"> <label for="cb_sound">Play beep sound on HIGH/CRITICAL alerts</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-start" onclick="closeSettings()" style="background: var(--surface-color); border: 1px solid var(--border-color);">Cancel</button>
+                <button class="btn-start" onclick="saveSettings()">Save & Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let isMonitoring = false;
+        let currentPendingIp = null;
+
+        async function fetchStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                updateUIState(data.running);
+            } catch (e) {
+                console.error("Status fetch failed", e);
+            }
+        }
+
+        function updateUIState(running) {
+            isMonitoring = running;
+            document.getElementById('statusLabel').textContent = running ? "Status: ACTIVE" : "Status: IDLE";
+            document.getElementById('statusLabel').style.color = running ? "var(--accent-green)" : "var(--accent-yellow)";
+            document.getElementById('startBtn').style.display = running ? "none" : "block";
+            document.getElementById('stopBtn').style.display = running ? "block" : "none";
+            document.getElementById('interfaceInput').disabled = running;
+        }
+
+        async function startCapture() {
+            const iface = document.getElementById('interfaceInput').value;
+            await fetch('/api/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({interface: iface})
+            });
+            fetchStatus();
+        }
+
+        async function stopCapture() {
+            await fetch('/api/stop', { method: 'POST' });
+            fetchStatus();
+        }
+
+        async function fetchAlerts() {
+            if(!isMonitoring) return;
+            const res = await fetch('/api/alerts');
+            const alerts = await res.json();
+            const tbody = document.querySelector('#alertsTable tbody');
+            tbody.innerHTML = '';
+            // Show last 100 alerts reversed
+            alerts.slice(-100).reverse().forEach(alert => {
+                const tr = document.createElement('tr');
+                let details = alert.details || alert.description;
+                if(alert.attacker_ip) {
+                    details += ` <button onclick="investigateIp('${alert.attacker_ip}')" style="background:rgba(210, 153, 34, 0.1); color: var(--accent-yellow); border:1px solid var(--accent-yellow); padding: 3px 8px; border-radius: 4px; font-size: 11px; margin-left: 10px; cursor: pointer; font-weight: bold; transition: all 0.2s;">🔍 INFO</button>`;
+                }
+                tr.innerHTML = `
+                    <td>${alert.timestamp.substring(11, 19)}</td>
+                    <td><span class="tag tag-${alert.severity}">${alert.severity}</span></td>
+                    <td>${alert.title}</td>
+                    <td>${details}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function fetchDevices() {
+            if(!isMonitoring) return;
+            const res = await fetch('/api/devices');
+            const devices = await res.json();
+            const tbody = document.querySelector('#devicesTable tbody');
+            tbody.innerHTML = '';
+            for (const [mac, dev] of Object.entries(devices)) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${mac}</td>
+                    <td>${dev.ip || 'Unknown'}</td>
+                    <td>${dev.vendor || 'Unknown'}</td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        async function checkIps() {
+            if(!isMonitoring || currentPendingIp != null) return;
+            const res = await fetch('/api/ips_pending');
+            const data = await res.json();
+            if (data.ip) {
+                currentPendingIp = data.ip;
+                document.getElementById('attackerIp').textContent = data.ip;
+                
+                document.getElementById('ipsOsint').innerHTML = '<i>Analyzing IP...</i>';
+                try {
+                    const geoRes = await fetch(`http://ip-api.com/json/${data.ip}`);
+                    const geo = await geoRes.json();
+                    if(geo.status === 'success') {
+                        document.getElementById('ipsOsint').innerHTML = `
+                            <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 6px; margin: 15px 0; font-size: 13px; text-align: left; border: 1px solid var(--border-color); color: #ccc;">
+                                <strong>ISP:</strong> ${geo.isp} <br>
+                                <strong>Location:</strong> ${geo.country}, ${geo.city}
+                            </div>
+                        `;
+                    } else {
+                        document.getElementById('ipsOsint').innerHTML = '';
+                    }
+                } catch(e) {
+                    document.getElementById('ipsOsint').innerHTML = '';
+                }
+
+                document.getElementById('ipsModal').style.display = 'flex';
+            }
+        }
+
+        async function investigateIp(ip) {
+            document.getElementById('osintIp').textContent = ip;
+            document.getElementById('osintContent').innerHTML = '<br><i>⏳ Loading intelligence data...</i>';
+            document.getElementById('osintModal').style.display = 'flex';
+            
+            try {
+                const geoRes = await fetch(`http://ip-api.com/json/${ip}`);
+                const geo = await geoRes.json();
+                if(geo.status === 'success') {
+                    document.getElementById('osintContent').innerHTML = `
+                        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px; margin: 15px 0; font-size: 14px; text-align: left; border: 1px solid var(--border-color); line-height: 1.8;">
+                            <div>🌎 <strong>Country:</strong> ${geo.country}</div>
+                            <div>🏙️ <strong>City:</strong> ${geo.city}, ${geo.regionName}</div>
+                            <div>🏢 <strong>ISP:</strong> ${geo.isp}</div>
+                            <div>🏢 <strong>Organization:</strong> ${geo.org}</div>
+                            <div>📡 <strong>ASN:</strong> ${geo.as}</div>
+                            <div>📍 <strong>Coordinates:</strong> ${geo.lat}, ${geo.lon}</div>
+                            <div>🕰️ <strong>Timezone:</strong> ${geo.timezone}</div>
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('osintContent').innerHTML = '<br><i>Cannot retrieve data for local or private IP addresses.</i>';
+                }
+            } catch(e) {
+                document.getElementById('osintContent').innerHTML = '<br><i style="color: red;">Failed to fetch intelligence data. Check internet connection.</i>';
+            }
+        }
+
+        async function handleIps(action) {
+            if (!currentPendingIp) return;
+            await fetch('/api/ips_action', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ip: currentPendingIp, action: action})
+            });
+            document.getElementById('ipsModal').style.display = 'none';
+            currentPendingIp = null;
+        }
+
+        // --- Settings Logic ---
+        async function openSettings() {
+            try {
+                const res = await fetch('/api/config');
+                const conf = await res.json();
+                
+                document.getElementById('cb_telegram').checked = conf.telegram_enabled || false;
+                document.getElementById('in_tg_token').value = conf.telegram_token || "";
+                document.getElementById('in_tg_chat').value = conf.telegram_chat_id || "";
+                
+                document.getElementById('cb_email').checked = conf.email_enabled || false;
+                document.getElementById('in_em_sender').value = conf.email_sender || "";
+                document.getElementById('in_em_pass').value = conf.email_password || "";
+                document.getElementById('in_em_recv').value = conf.email_receiver || "";
+                
+                document.getElementById('cb_sound').checked = conf.sound_enabled !== false; 
+                
+                document.getElementById('settingsModal').style.display = 'flex';
+            } catch (e) {
+                console.error("Failed to fetch settings", e);
+            }
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').style.display = 'none';
+        }
+
+        async function saveSettings() {
+            const payload = {
+                telegram_enabled: document.getElementById('cb_telegram').checked,
+                telegram_token: document.getElementById('in_tg_token').value,
+                telegram_chat_id: document.getElementById('in_tg_chat').value,
+                
+                email_enabled: document.getElementById('cb_email').checked,
+                email_sender: document.getElementById('in_em_sender').value,
+                email_password: document.getElementById('in_em_pass').value,
+                email_receiver: document.getElementById('in_em_recv').value,
+                
+                sound_enabled: document.getElementById('cb_sound').checked
+            };
+            
+            try {
+                const btn = event.target;
+                const oldText = btn.textContent;
+                btn.textContent = "Saving...";
+                await fetch('/api/config', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                btn.textContent = "Saved!";
+                setTimeout(() => { closeSettings(); btn.textContent = oldText; }, 1000);
+            } catch (e) {
+                console.error("Failed to save settings", e);
+            }
+        }
+
+        // Polling
+        setInterval(fetchStatus, 2000);
+        setInterval(fetchAlerts, 2000);
+        setInterval(fetchDevices, 3000);
+        setInterval(checkIps, 1500);
+
+        // Initial fetch
+        fetchStatus();
+    </script>
+</body>
+</html>
